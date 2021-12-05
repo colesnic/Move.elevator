@@ -1,0 +1,68 @@
+#include "Floor.h"
+#include <algorithm>
+
+using namespace std;
+
+int Floor::tick(int currentTime) {
+    int indicesToRemove[MAX_PEOPLE_PER_FLOOR] = {};
+    int explodedCount = 0;
+    
+    for (int i = 0; i < numPeople; i++) {
+        //if they exploded
+        if (people[i].tick(currentTime) == true) {
+            indicesToRemove[explodedCount] = i;
+            explodedCount++;
+        }
+    }
+    removePeople(indicesToRemove, explodedCount);
+    return explodedCount;
+}
+
+void Floor::addPerson(Person p, int request) {
+    if (numPeople < MAX_PEOPLE_PER_FLOOR) {
+        //adding new person at end of array
+        people[numPeople] = p;
+        numPeople++;
+    }
+    if (request > 0) {
+        setHasUpRequest(true);
+    }
+    else if (request < 0) {
+        setHasDownRequest(true);
+    }
+}
+
+void Floor::removePeople(int indicesToRemove[MAX_PEOPLE_PER_FLOOR],
+                         int numPeopleToRemove) {
+    sort(indicesToRemove, indicesToRemove + numPeopleToRemove);
+        
+    //Looping through people array
+    for (int i = numPeopleToRemove - 1; i >= 0; i--) {
+        //Looping through indicesToRemove array
+        for (int j = indicesToRemove[i]; j < numPeople - 1; j++) {
+            //if they match, copy
+            people[j] = people[j + 1];
+        }
+    }
+    numPeople -= numPeopleToRemove;
+    resetRequests();
+}
+
+void Floor::resetRequests() {
+    hasUpRequest = false;
+    hasDownRequest = false;
+    
+    for (int i = 0; i < numPeople; i++) {
+        int personTargetFloor = people[i].getTargetFloor();
+        int personCurrentFloor = people[i].getCurrentFloor();
+        int personRequest = personTargetFloor - personCurrentFloor;
+        
+        //both up and down requests can be true simultaneously
+        if (personRequest < 0) {
+            hasDownRequest = true;
+        }
+        else {
+            hasUpRequest = true;
+        }
+    }
+}
