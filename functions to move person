@@ -1,0 +1,106 @@
+#include <cmath>
+#include <sstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include "Move.h"
+
+using namespace std;
+
+Move::Move(string commandString) : Move() {
+
+    stringstream ss(commandString);
+    
+    elevatorId = -1;
+    targetFloor = -1;
+    numPeopleToPickup = 0;
+    totalSatisfaction = 0;
+    
+    isPass = false;
+    isSave = false;
+    isQuit = false;
+    char e = 'e';
+    char f = 'f';
+    char p = 'p';
+    
+    if (commandString == "") {
+        isPass = true;
+    }
+    if (commandString == "s" || commandString == "S") {
+        isSave = true;
+    }
+    if (commandString == "q" || commandString == "Q") {
+        isQuit = true;
+    }
+    if (commandString.size() == 4) {
+        ss >> e;
+        ss >> elevatorId;
+        ss >> f;
+        ss >> targetFloor;
+    }
+    if (commandString.size() == 3) {
+        isPickup = true;
+        ss >> e;
+        ss >> elevatorId;
+        ss >> p;
+    }
+}
+
+bool Move::isValidMove(Elevator elevators[NUM_ELEVATORS]) const {
+    
+    //Pass, Quit, and Save moves are valid
+    if (isPass == true || isQuit == true || isSave == true) {
+        return true;
+    }
+    //Pickup and service moves
+    if (0 <= elevatorId && elevatorId < NUM_ELEVATORS
+        && elevators[elevatorId].isServicing() == false) {
+        if (isPickup == true) {
+            //True for pickup move
+            return true;
+        }
+            //if not pickup move, then service move. Check extra critera
+            else if (0 <= targetFloor && targetFloor < NUM_FLOORS && targetFloor
+                    != elevators[elevatorId].getCurrentFloor()) {
+                    return true;
+            }
+    }
+    return false;
+}
+
+void Move::setPeopleToPickup(const string& pickupList, const int currentFloor, const Floor& pickupFloor) {
+    
+    numPeopleToPickup = int(pickupList.size());
+    totalSatisfaction = 0;
+    Person p;
+    int pAngerLevel = 0;
+    int pSatisfaction = 0;
+    int pTargetFloor = 0;
+    int distance = 0;
+    int distanceHold = 0;
+    char a;
+    
+    //looping through the array of people to pickup
+    for (int i = 0; i <= numPeopleToPickup - 1; i++) {
+        a = pickupList.at(i);
+        peopleToPickup[i] = a - '0';
+    }
+    for (int i = 0; i <= numPeopleToPickup - 1; i++) {
+        //get info about this person
+        p = pickupFloor.getPersonByIndex(peopleToPickup[i]);
+
+        //get Satisfaction calculation
+        pAngerLevel = p.getAngerLevel();
+        pSatisfaction = MAX_ANGER - pAngerLevel;
+        totalSatisfaction += pSatisfaction;
+        
+        //calculating which distance is farthest
+        pTargetFloor = p.getTargetFloor();
+        distance = p.getCurrentFloor() - pTargetFloor;
+        distance = abs(distance);
+        
+        if (distance > distanceHold) {
+            distanceHold = distance;
+            setTargetFloor(pTargetFloor);
+        }
+    }
+}
